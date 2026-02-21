@@ -1,10 +1,12 @@
+require('dotenv').config();
 const express = require('express');
-const dotenv = require('dotenv');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const path = require('path');
 const connectDB = require('./config/db');
-const mongoose = require('mongoose');
-const Product = require('./models/product');
-dotenv.config();
 
+const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // Middleware
@@ -65,17 +67,7 @@ app.get('/products', async (req, res) => {
     res.json(products);
 });
 
-app.get('/create', async (req, res) => {
-    const product = new Product({
-        name: "Serverless Laptop",
-        description: "Test product for serverless Vercel",
-        price: 75000,
-        category: new mongoose.Types.ObjectId(), // dummy id
-        stock: 10
-    });
-    const saved = await product.save();
-    res.json(saved);
-});
+
 
 
 
