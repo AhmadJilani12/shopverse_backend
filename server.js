@@ -1,61 +1,103 @@
+require('dotenv').config();
 const express = require('express');
-const dotenv = require('dotenv');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const path = require('path');
 const connectDB = require('./config/db');
-const Product = require('./models/product');
-dotenv.config();
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// Middleware
-app.use(express.json());
+// ——— Security ———
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' }, contentSecurityPolicy: false }));
+app.use(cors({
+    origin: true,
+    credentials: true,
+}));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
 
-// Database Connect
-connectDB();
+// ——— Body Parsers ———
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// ✅ Test Route
-app.get('/', (req, res) => {
-    res.json({ message: "🚀 Server is running & Database connected" });
+// ——— Static Files ———
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ——— API Routes ———
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/categories', require('./routes/categories'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/admin', require('./routes/admin'));
+
+// ——— Health Check ———
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ——— Serve Production Frontend ———
+const clientDist = path.join(__dirname, '..', 'client', 'dist');
+app.use(express.static(clientDist));
 
-// =======================================
-// ✅ HARDCODE CREATE ROUTE
-// =======================================
-app.get('/create', async (req, res) => {
-    try {
-        const product = new Product({
-            name: "Hardcoded Laptop",
-            price: 75000
-        });
-
-        const savedProduct = await product.save();
-
-        res.json({
-            message: "Product Created Successfully ✅",
-            data: savedProduct
-        });
-
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+// SPA catch-all: any non-API route serves index.html
+app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
 });
 
+// ——— Error Handler ———
+app.use(errorHandler);
 
-// =======================================
-// ✅ READ ALL PRODUCTS
-// =======================================
-app.get('/products', async (req, res) => {
-    try {
-        const products = await Product.find(); // ✅ Capital P
-        res.json(products);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-
+// ——— Start Server ———
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`🔥 Server running on port ${PORT}`);
+const autoSeed = async () => {
+    const User = require('./models/User');
+    const Category = require('./models/Category');
+    const Product = require('./models/Product');
+
+    const userCount = await User.countDocuments();
+    if (userCount > 0) return; // Already seeded
+
+    console.log('🌱 Auto-seeding database...');
+
+    await User.create({ name: 'Admin User', email: 'admin@shopverse.com', password: 'admin123', role: 'admin' });
+    await User.create({ name: 'Test User', email: 'user@shopverse.com', password: 'user123', role: 'user' });
+
+    const cats = await Category.insertMany([
+        { name: 'Electronics', description: 'Gadgets, phones, and tech accessories' },
+        { name: 'Clothing', description: 'Fashion apparel for men and women' },
+        { name: 'Home & Kitchen', description: 'Essentials for your home' },
+        { name: 'Books', description: 'Best-selling books and literature' },
+        { name: 'Sports', description: 'Sports gear and fitness equipment' },
+    ]);
+
+    await Product.insertMany([
+        { name: 'Wireless Bluetooth Headphones', description: 'Premium noise-cancelling wireless headphones with 30-hour battery life and deep bass.', price: 79.99, category: cats[0]._id, stock: 50, ratings: 4.5, numReviews: 128, featured: true },
+        { name: 'Smart Watch Pro', description: 'Advanced smart watch with heart rate monitoring, GPS tracking, sleep analysis, and 7-day battery life.', price: 199.99, category: cats[0]._id, stock: 30, ratings: 4.3, numReviews: 89, featured: true },
+        { name: 'USB-C Fast Charger 65W', description: 'Universal 65W GaN charger with USB-C and USB-A ports. Compatible with laptops, phones, and tablets.', price: 34.99, category: cats[0]._id, stock: 100, ratings: 4.7, numReviews: 256 },
+        { name: 'Mechanical Gaming Keyboard', description: 'RGB mechanical keyboard with Cherry MX switches, per-key lighting, and programmable macros.', price: 129.99, category: cats[0]._id, stock: 25, ratings: 4.6, numReviews: 67, featured: true },
+        { name: 'Classic Denim Jacket', description: 'Timeless denim jacket made from premium cotton with a comfortable fit.', price: 89.99, category: cats[1]._id, stock: 40, ratings: 4.2, numReviews: 34 },
+        { name: 'Running Performance Sneakers', description: 'Lightweight running shoes with responsive cushioning and breathable mesh upper.', price: 119.99, category: cats[1]._id, stock: 60, ratings: 4.4, numReviews: 92, featured: true },
+        { name: 'Stainless Steel Water Bottle', description: 'Double-wall insulated bottle - cold for 24hrs, hot for 12hrs. BPA-free, 750ml.', price: 24.99, category: cats[2]._id, stock: 200, ratings: 4.8, numReviews: 312 },
+        { name: 'Non-Stick Cookware Set', description: '10-piece ceramic non-stick cookware set with pots, pans, and lids. Dishwasher safe.', price: 149.99, category: cats[2]._id, stock: 15, ratings: 4.1, numReviews: 45, featured: true },
+        { name: 'The Art of Programming', description: 'Guide to modern software development, clean code, and system design patterns.', price: 39.99, category: cats[3]._id, stock: 75, ratings: 4.9, numReviews: 421, featured: true },
+        { name: 'Yoga Mat Premium', description: 'Extra-thick 6mm yoga mat with non-slip surface and alignment guides. Eco-friendly TPE.', price: 45.99, category: cats[4]._id, stock: 80, ratings: 4.5, numReviews: 156 },
+    ]);
+
+    console.log('✅ Seeded: 2 users, 5 categories, 10 products');
+    console.log('   Admin: admin@shopverse.com / admin123');
+    console.log('   User:  user@shopverse.com / user123');
+};
+
+connectDB().then(async () => {
+    await autoSeed();
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+}).catch((err) => {
+    console.error('Failed to connect to DB:', err);
+    process.exit(1);
 });
