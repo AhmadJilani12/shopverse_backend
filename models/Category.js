@@ -7,16 +7,27 @@ const categorySchema = new mongoose.Schema({
     image: { type: String, default: '' },
 }, { timestamps: true });
 
+// ------------------------------
+// Pre-save hook to generate slug
+// ------------------------------
 categorySchema.pre('save', function () {
     if (this.isModified('name')) {
-        this.slug = this.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        this.slug = this.name.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
     }
 });
 
+// Pre-validate hook to ensure slug exists
 categorySchema.pre('validate', function () {
     if (!this.slug && this.name) {
-        this.slug = this.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        this.slug = this.name.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
     }
 });
 
-module.exports = mongoose.model('Category', categorySchema);
+// ------------------------------
+// Serverless-safe export
+// ------------------------------
+module.exports = mongoose.models.Category || mongoose.model('Category', categorySchema);
