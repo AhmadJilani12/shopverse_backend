@@ -18,6 +18,12 @@ app.get('/', (req, res) => {
 });
 
 
+//health api 
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // =======================================
 // ✅ HARDCODE CREATE ROUTE
 // =======================================
