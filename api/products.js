@@ -1,19 +1,51 @@
-const { getProducts, getProduct, createProduct, updateProduct, deleteProduct, uploadImages } = require('../controllers/productController');
-const { verifyToken, isAdmin } = require('../middleware/auth');
-const connectDB = require('../config/db');
-const createApp = require('../server');
+// pages/api/products.js  (Vercel style serverless function)
+const { getProducts, getProduct, createProduct, updateProduct, deleteProduct, uploadImages } = require('../../controllers/productController');
+const { verifyToken, isAdmin } = require('../../middleware/auth');
+const connectDB = require('../../config/db');
+const Product = require('../../models/Product'); // required inside handler
+const mongoose = require('mongoose');
 
-const handler = async (req, res) => {
+// Make Mongoose serverless safe
+const serverlessHandler = async (req, res) => {
+    // Connect DB
     await connectDB();
-    const app = createApp();
 
-    app.get('/api/products', getProducts);
-    app.get('/api/products/:id', getProduct);
-    app.post('/api/products', verifyToken, isAdmin, uploadImages, createProduct);
-    app.put('/api/products/:id', verifyToken, isAdmin, uploadImages, updateProduct);
-    app.delete('/api/products/:id', verifyToken, isAdmin, deleteProduct);
+    const method = req.method;
 
-    app(req, res);
+    try {
+        if (method === 'GET') {
+            // If query id present, get single product
+            const { id } = req.query;
+            if (id) {
+                await getProduct(req, res);
+            } else {
+                await getProducts(req, res);
+            }
+        } 
+        else if (method === 'POST') {
+            await verifyToken(req, res);
+            await isAdmin(req, res);
+            await uploadImages(req, res);
+            await createProduct(req, res);
+        } 
+        else if (method === 'PUT') {
+            await verifyToken(req, res);
+            await isAdmin(req, res);
+            await uploadImages(req, res);
+            await updateProduct(req, res);
+        } 
+        else if (method === 'DELETE') {
+            await verifyToken(req, res);
+            await isAdmin(req, res);
+            await deleteProduct(req, res);
+        } 
+        else {
+            res.status(405).json({ message: 'Method not allowed' });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+    }
 };
 
-module.exports = handler;
+module.exports = serverlessHandler;
