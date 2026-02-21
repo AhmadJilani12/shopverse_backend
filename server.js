@@ -15,6 +15,7 @@ app.use(express.json());
 // Database Connect
 connectDB();
 
+app.use('/api/products', require('./routes/products'));
 // ✅ Test Route
 app.get('/', (req, res) => {
     res.json({ message: "🚀 Server is running & Database connected" });
