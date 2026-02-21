@@ -19,4 +19,5 @@ const productSchema = new mongoose.Schema({
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ category: 1, price: 1 });
 
-module.exports = mongoose.model('Product', productSchema);
+// ✅ Important: Serverless me model overwrite error avoid karna
+module.exports = mongoose.models.Product || mongoose.model('Product', productSchema);
