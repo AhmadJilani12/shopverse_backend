@@ -19,7 +19,6 @@ app.get('/', (req, res) => {
 
 
 //health api 
-
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -58,6 +57,25 @@ app.get('/api/health', (req, res) => {
 //         res.status(500).json({ message: error.message });
 //     }
 // });
+
+
+app.get('/products', async (req, res) => {
+    const products = await Product.find();
+    res.json(products);
+});
+
+app.get('/create', async (req, res) => {
+    const product = new Product({
+        name: "Serverless Laptop",
+        description: "Test product for serverless Vercel",
+        price: 75000,
+        category: new mongoose.Types.ObjectId(), // dummy id
+        stock: 10
+    });
+    const saved = await product.save();
+    res.json(saved);
+});
+
 
 
 const PORT = process.env.PORT || 5000;
