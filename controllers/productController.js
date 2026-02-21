@@ -1,8 +1,8 @@
-const Product = require('../models/product');
+//const Product = require('../models/product');
 //const Category = require('../models/Category');
 //const multer = require('multer');
 //const { v4: uuidv4 } = require('uuid');
-const mongoose = require('mongoose');
+//const mongoose = require('mongoose');
 
 // ------------------------------
 // Multer config (memoryStorage for serverless)
@@ -70,15 +70,32 @@ const mongoose = require('mongoose');
 // ------------------------------
 // GET /api/products/:id
 // ------------------------------
+const Product = require('../models/product');
+const connectDB = require('../config/db');
+
 exports.getProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.query.id || req.params.id)
-            .populate('category', 'name slug');
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        res.json(product);
+        // ✅ Connect to DB safely
+        await connectDB();
+
+        // ✅ Support serverless query: either query param or URL param
+        const productId = req.query.id || req.params.id;
+
+        if (!productId) {
+            return res.status(400).json({ message: "Product ID is required" });
+        }
+
+        const product = await Product.findById(productId).populate('category', 'name slug');
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json(product);
+
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: err.message });
+        console.error('DB/Controller Error:', err.message);
+        res.status(500).json({ message: 'Database connection failed or invalid ID' });
     }
 };
 
