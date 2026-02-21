@@ -1,7 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
-const Product = require('./models/product');
+//const Product = require('./models/product');
 dotenv.config();
 
 const app = express();
@@ -17,44 +17,41 @@ app.get('/', (req, res) => {
     res.json({ message: "🚀 Server is running & Database connected" });
 });
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // =======================================
 // ✅ HARDCODE CREATE ROUTE
 // =======================================
-app.get('/create', async (req, res) => {
-    try {
-        const product = new Product({
-            name: "Hardcoded Laptop",
-            price: 75000
-        });
+// app.get('/create', async (req, res) => {
+//     try {
+//         const product = new Product({
+//             name: "Hardcoded Laptop",
+//             price: 75000
+//         });
 
-        const savedProduct = await product.save();
+//         const savedProduct = await product.save();
 
-        res.json({
-            message: "Product Created Successfully ✅",
-            data: savedProduct
-        });
+//         res.json({
+//             message: "Product Created Successfully ✅",
+//             data: savedProduct
+//         });
 
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// });
 
 
 // =======================================
 // ✅ READ ALL PRODUCTS
 // =======================================
-app.get('/products', async (req, res) => {
-    try {
-        const products = await Product.find(); // ✅ Capital P
-        res.json(products);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
+// app.get('/products', async (req, res) => {
+//     try {
+//         const products = await Product.find(); // ✅ Capital P
+//         res.json(products);
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// });
 
 
 const PORT = process.env.PORT || 5000;
