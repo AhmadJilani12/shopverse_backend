@@ -1,4 +1,4 @@
-const { getProducts, createProduct, uploadImages } = require('../../controllers/productController');
+const { getProducts } = require('../../controllers/productController');
 const connectDB = require('../../config/db');
 //const { verifyToken, isAdmin } = require('../../middleware/auth');
 
