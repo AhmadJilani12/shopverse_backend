@@ -1,22 +1,19 @@
 const { createOrder, getMyOrders, getOrder, updateOrderStatus } = require('../controllers/orderController');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 const { validateOrder } = require('../middleware/validate');
+const connectDB = require('../config/db');
+const createApp = require('../server');
 
-module.exports = async (req, res) => {
-  const { method, query, body } = req;
+const handler = async (req, res) => {
+    await connectDB();
+    const app = createApp();
 
-  if (method === 'POST') {
-    return verifyToken(req, res, () => validateOrder(req, res, () => createOrder(req, res)));
-  } else if (method === 'GET') {
-    if (query.me) {
-      return verifyToken(req, res, () => getMyOrders(req, res));
-    } else {
-      return verifyToken(req, res, () => getOrder(req, res));
-    }
-  } else if (method === 'PUT') {
-    return verifyToken(req, res, () => isAdmin(req, res, () => updateOrderStatus(req, res)));
-  } else {
-    res.setHeader('Allow', ['POST', 'GET', 'PUT']);
-    res.status(405).end(`Method ${method} Not Allowed`);
-  }
+    app.post('/api/orders', verifyToken, validateOrder, createOrder);
+    app.get('/api/orders/me', verifyToken, getMyOrders);
+    app.get('/api/orders/:id', verifyToken, getOrder);
+    app.put('/api/orders/:id/status', verifyToken, isAdmin, updateOrderStatus);
+
+    app(req, res);
 };
+
+module.exports = handler;

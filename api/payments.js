@@ -1,19 +1,17 @@
 const { createStripeIntent, confirmStripePayment, processCod } = require('../controllers/paymentController');
 const { verifyToken } = require('../middleware/auth');
+const connectDB = require('../config/db');
+const createApp = require('../server');
 
-module.exports = async (req, res) => {
-  const { method, query, body } = req;
+const handler = async (req, res) => {
+    await connectDB();
+    const app = createApp();
 
-  if (method === 'POST') {
-    if (query.type === 'stripe') {
-      return verifyToken(req, res, () => createStripeIntent(req, res));
-    } else if (query.type === 'confirm') {
-      return verifyToken(req, res, () => confirmStripePayment(req, res));
-    } else if (query.type === 'cod') {
-      return verifyToken(req, res, () => processCod(req, res));
-    }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${method} Not Allowed`);
-  }
+    app.post('/api/payments/stripe', verifyToken, createStripeIntent);
+    app.post('/api/payments/stripe/confirm', verifyToken, confirmStripePayment);
+    app.post('/api/payments/cod', verifyToken, processCod);
+
+    app(req, res);
 };
+
+module.exports = handler;

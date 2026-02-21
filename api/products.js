@@ -1,23 +1,19 @@
 const { getProducts, getProduct, createProduct, updateProduct, deleteProduct, uploadImages } = require('../controllers/productController');
 const { verifyToken, isAdmin } = require('../middleware/auth');
+const connectDB = require('../config/db');
+const createApp = require('../server');
 
-module.exports = async (req, res) => {
-  const { method, query, body } = req;
+const handler = async (req, res) => {
+    await connectDB();
+    const app = createApp();
 
-  if (method === 'GET') {
-    if (query.id) {
-      return getProduct(req, res);
-    } else {
-      return getProducts(req, res);
-    }
-  } else if (method === 'POST') {
-    return verifyToken(req, res, () => isAdmin(req, res, () => uploadImages(req, res, () => createProduct(req, res))));
-  } else if (method === 'PUT') {
-    return verifyToken(req, res, () => isAdmin(req, res, () => uploadImages(req, res, () => updateProduct(req, res))));
-  } else if (method === 'DELETE') {
-    return verifyToken(req, res, () => isAdmin(req, res, () => deleteProduct(req, res)));
-  } else {
-    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-    res.status(405).end(`Method ${method} Not Allowed`);
-  }
+    app.get('/api/products', getProducts);
+    app.get('/api/products/:id', getProduct);
+    app.post('/api/products', verifyToken, isAdmin, uploadImages, createProduct);
+    app.put('/api/products/:id', verifyToken, isAdmin, uploadImages, updateProduct);
+    app.delete('/api/products/:id', verifyToken, isAdmin, deleteProduct);
+
+    app(req, res);
 };
+
+module.exports = handler;
